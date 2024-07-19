@@ -13,59 +13,50 @@ print("hello beaver ballers")
 
 #profile stores name and the person's descriptors 
 #database stores profiles 
-class Profile: 
-    #might have to update this based on how we implement. 
+
+
+profile_dict = {}
+
+class Profile:
     def __init__(self, name, desc) -> None:
         self.name = name #name of person in image
-        self.desc = desc #descriptor in array
+        self.desc = np.array([desc]) #descriptor in array
+        profile_dict[self.name] = self
+
+    def add_desc(self, desc):
+        self.desc.append(desc)
+        
+    def remove_from_dict(self):
+        del profile_dict[self.name]
     
-    def __str__(self) -> str:
-        return (self.name, len(self.desc))
+# class Profile: 
+#     #might have to update this based on how we implement. 
+#     def __init__(self, name, desc) -> None:
+#         self.name = name #name of person in image
+#         self.desc = np.array([desc]) #descriptor in array
     
+#     def __str__(self) -> str:
+#         return (self.name, len(self.desc))
+
+
+#     def add_to_dict(self, desc):
+#         if self.name in profile_dict:
+#             profile_dict[self.name].append(self.desc)
+#         else:
+#             profile_dict[self.name] = np.array([self.desc])
+
+#     def remove_from_dict_w_profile(self):
+#         del profile_dict[self.name]
+
+
+    # def remove_from_dict_w_name(name):
+    #     del profile_dict[name]
+
     # def add_desc(self, desc):
     #     self.avg_d = ((self.avg_d * len(self.desc)) + desc) / (len(self.desc) + 1) #recalculates avg based on the new descriptor
     #     self.desc.append(desc) #adds new descriptor to the descriptor array. 
 
-profile_dict = {}
 
-def add_to_dict(profile):
-    if profile.name in profile_dict:
-        profile_dict[profile.name].append(profile.desc)
-    else:
-        profile_dict[profile.name] = np.array[profile.desc]
-
-def remove_from_dict_w_profile(profile):
-    del profile_dict[profile.name]
-
-def remove_from_dict_w_name(name):
-    del profile_dict[name]
-
-
-# #Database (can't have two things with the same name)
-# def create_connection():
-#     conn = sqlite3.connect('profiles.db')
-#     return conn
-# def create_table(conn):
-#     with conn:
-#         conn.execute('''
-#             CREATE TABLE IF NOT EXISTS profiles (
-#                 name TEXT NOT NULL,
-#                 age INTEGER NOT NULL
-#             )
-#         ''')
-
-# def add_profile(conn, profile):
-#     with conn:
-#         conn.execute('conn.execute('INSERT INTO profiles (name, desc) VALUES (?, ?)', (profile.name, profile.desc))')
-                     
-# def update_profile(conn, name, desc):
-#     with conn:
-#         conn.execute('UPDATE profiles SET name = ?, desc = ?', (name, desc))
-    
-
-
-# conn = create_connection()
-# create_table(conn)
 
 
 
@@ -89,65 +80,79 @@ def distance_metric(d1, d2):
 
 # Estimate a good detection probability threshold for rejecting false detections (e.g. a basketball detected as a face). Try running the face detector on various pictures and see if you notice false-positives (things detected as faces that aren’t faces), and see what the detectors reported “detection probability” is for that false positive vs for true positives.
 
-def get_accuracy(images, labels, prob):
-    model = FacenetModel()
-    detection_prob = []
-    tp = 0
-    fp = 0
-    tn = 0
-    fn = 0
-    idx = 0
-    total_pos = 0
-    total_neg = 0
-    for idx, k in enumerate(detection_prob):
-        if k>prob:
-            if labels[idx] == 1:
-                tp += 1
-            else:
-                fp += 1
-            total_pos += 1
-        else:
-            if labels[idx] == 0:
-                tn += 1
-            else:
-                fn += 1
-            total_neg += 1
-    if total_pos != 0:
-        true_pos_rate = tp/total_pos
-        false_pos_rate = fp/total_pos
-    else:
-        true_pos_rate = -1
-        false_pos_rate = -1
-    if false_pos != 0:
-        true_neg_rate = tn/total_neg
-        false_neg_rate = fn/total_neg
-    else:
-        true_neg_rate = -1
-        false_neg_rate = -1
-    overall_accuracy = (tp+tn)/(total_pos+total_neg)
-    return overall_accuracy
+from facenet_models import FacenetModel
+import numpy as np
+from PIL import Image, ImageDraw, ImageFont
+
+
+image_path = '[Insert image path]'
+image = Image.open(image_path)
+image = image.convert('RGB')
+image_array = np.array(image)
+print(image_array.shape)
+model = FacenetModel()
+boxes, probabilities, landmarks = model.detect(image_array)
+print(boxes, probabilities)
+
+# For both step 4 and 7
+if boxes is None:
+    print("No Faces Detected")
+else:
+    def DrawBoxOnPicture(image, box, text, output_filename = "output_image.jpg"):
+        draw = ImageDraw.Draw(image)
+        font_size = 20
+        font = ImageFont.truetype("Arial Unicode.ttf", font_size)
+        draw.rectangle([(box[0], box[1]), (box[2], box[3])], outline="red", width=3)
+        text_bbox = draw.textbbox((box[0], box[1]), text, font=font)
+        draw.rectangle([text_bbox[:2], text_bbox[2:]], fill="red")
+        draw.text((box[0], box[1]), text, fill="white", font=font)
+        image.show()
+        image.save(output_filename)
+        
+    # For step 4
+    for box, prob in zip(boxes, probabilities):
+        DrawBoxOnPicture(image, box, f"{prob:.2f}")
+
+    # Functionality to display an image with a box around detected faces with labels to indicate matches or an “Unknown” label otherwise
+    #use M
+    def DrawBoxesOnPicture(image, boxes, labels):
+        for box, text in zip(boxes, labels):
+            DrawBoxOnPicture(image, box, text)
     
-def est_detection_threshold(images, labels, step_size = 0.001):
-    prob = 0
-    best_acc = 0
-    best_acc_prob = 0
-    while prob <= 1:
-        new_acc = get_accuracy(images, labels, prob)
-        if new_acc > best_acc:
-            best_acc = new_acc
-            best_acc_prob = prob
-        prob += step_size
-    return best_acc_prob
-    
-    
+
+descriptors = model.compute_descriptors(image_array, boxes)
 
 # Estimate the maximum cosine-distance threshold between two descriptors, which separates a match from a non-match. Note that this threshold is also needed for the whispers-clustering part of the project, so be sure that this task is not duplicated and that you use the same threshold. You can read more about how you might estimate this threshold on page 3 of this document
 
+cutoff = 0.2 #update after testing
 
 # Functionality to see if a new descriptor has a match in your database, given the aforementioned cutoff threshold.
+def check_match(desc):
+    for key, value in profile_dict:
+        for d_i in value:
+            if (distance_metric(d_i, desc) < cutoff):
+                profile_dict[key].append(desc)
+                break
+            else:
+                continue
+    name = input('Enter a name, or press enter for UNKNOWN: ')
+    if not name:
+        name = 'UNKNOWN'
+
+    Profile(name, desc)
+    
+    
+
+    #iterate through the values
+    #find average of all current desccriptors
+    # compare with loaded descriptor
+    # if below cutoff then add
+    # if above cutoff then tell user its unknown and prompt them to ask for a name, default to unknown
 
 
-# Functionality to display an image with a box around detected faces with labels to indicate matches or an “Unknown” label otherwise
+
+
+
 
 
 
