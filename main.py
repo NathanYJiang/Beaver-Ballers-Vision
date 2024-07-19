@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import sqlite3
 from facenet_models import FacenetModel
 
-print("hello beaver ballers")
+#print("hello beaver ballers")
 
 # Create a Profile class with functionality to store face descriptors associated with a named individual.
 # Functionality to create, load, and save a database of profiles
@@ -127,27 +127,26 @@ descriptors = model.compute_descriptors(image_array, boxes)
 cutoff = 0.2 #update after testing
 
 # Functionality to see if a new descriptor has a match in your database, given the aforementioned cutoff threshold.
+#iterate through the values
+#find average of all current desccriptors
+# compare with loaded descriptor
+# if below cutoff then add
+# if above cutoff then tell user its unknown and prompt them to ask for a name, default to unknown
 def check_match(desc):
-    for key, value in profile_dict:
-        for d_i in value:
-            if (distance_metric(d_i, desc) < cutoff):
-                profile_dict[key].append(desc)
-                break
-            else:
-                continue
-    name = input('Enter a name, or press enter for UNKNOWN: ')
-    if not name:
-        name = 'UNKNOWN'
+    found = False
+    for key, value in profile_dict.items():
+        avg_value = np.mean(value)
+        if (distance_metric(avg_value, desc) < cutoff):
+            profile_dict[key].append(desc)
+            found = True
+            break
+
+    if not found:
+        name = input('Enter a name, or press enter for UNKNOWN: ')
+        if not name:
+            name = 'UNKNOWN'
 
     Profile(name, desc)
-    
-    
-
-    #iterate through the values
-    #find average of all current desccriptors
-    # compare with loaded descriptor
-    # if below cutoff then add
-    # if above cutoff then tell user its unknown and prompt them to ask for a name, default to unknown
 
 
 
